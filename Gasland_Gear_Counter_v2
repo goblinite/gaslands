@@ -1,0 +1,154 @@
+#include<LiquidCrystal.h>
+#include <Wire.h>
+
+//Set pins
+
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);  //Pins LCD is connected to
+const int  Up_buttonPin   = 7;  //Pin Gear Counter button is connected to
+const int  start_buttonPin = 13;  //Pin Start button is connected to
+const int redLED = 8; //Pin for red LED
+const int yllLED = 9; //Pin for yellow LED
+const int grnLED = 10; //Pin for green LED
+
+//Variables
+
+int gearCounter = 1;  //Counter for current Gear
+int turnCounter = 1;  //Counter for current Turn
+int up_buttonState = 0; //Current state of the Gear button
+int up_lastButtonState = 0; //Previous state of the Gear button
+int start_buttonState = 0; //Current state of the Start button
+int start_lastButtonState = 0; //Previous state of the Start button
+bool bPress = false;  //Has the Gear button been pressed
+bool startPress = false;  //Has the Start button been pressed
+long randNumber = 0; //Initialize ranndom number
+char *msgBank[] = {"Hello Gaslands!","Total Carnage!", "Goin Fast Momma", "Sweet Explosion!", "Mars or Bust",
+                  "You See That?", "Pedal Meet Metal", "Break Stuff", "Thats Gotta Hurt", "Boink!", "Nothing Here"};
+//With the way the random number generator works you will never see the last message in the message bank
+int count = 0;  //Initialize counter to keep LEDs from cycling
+
+//Setup LCD and LEDs
+
+void setup()
+{
+ pinMode( Up_buttonPin , INPUT_PULLUP); //Set Gear button pin as input
+ pinMode( start_buttonPin , INPUT_PULLUP);  //Set Start button pin as input
+ lcd.begin(16, 2);  //Initalize LCD
+ lcd.setCursor(0,0);  //Initial cursor positions.  (Column,Row)
+ lcd.print(msgBank[0]);  //Set banner
+ lcd.setCursor(0,1);  //Position for Turn label         
+ lcd.print("Turn: "); 
+ lcd.setCursor(6,1);  //Position for Turn #
+ lcd.print(turnCounter);
+ lcd.setCursor(8,1);  //Position for Gear label
+ lcd.print("Gear: ");
+ lcd.setCursor(14,1); //Position for Gear #
+ lcd.print(gearCounter);
+ randomSeed(analogRead(0)); //Seed random number
+ pinMode(redLED, OUTPUT); //Set pin as output
+ pinMode(yllLED, OUTPUT); //Set pin as output
+ pinMode(grnLED, OUTPUT); //Set pin as output
+}
+
+//Not sure why but I get a compile error if this function isn't defined prior to the loop.  But the button functions must be defines after the loop.
+void startRace() 
+{
+  if (count == 0){
+  digitalWrite(redLED, HIGH); //turn on red 
+  delay(3000);  //3 second pause
+  digitalWrite(redLED, LOW);  //Turn off red
+  digitalWrite(yllLED, HIGH); //turn on yellow
+  delay(3000); //3 second pause
+  digitalWrite(yllLED, LOW);  //Turn off yellow
+  digitalWrite(grnLED, HIGH); //Turn on and leave on green
+  }
+}
+
+//Main loop
+
+void loop()
+{
+ 
+ 
+ checkStartUp();  //Check if Start button has been pressed
+  
+  //Do if Start button pressed
+  if ( startPress)
+  {
+   startPress = false;  //Reset Start button
+   startRace(); //Call function
+   count = 1; //Set counter so LEDs don't cycle
+ }
+ 
+ checkUp(); //Check if Gear button has been pressed
+
+ //Do if Gear button pressed
+ 
+ if( bPress)
+ {
+  bPress = false; //Reset Gear button
+  lcd.setCursor(0,0);
+  lcd.print("                ");  //Blank line 1
+  lcd.setCursor(0,0);
+  lcd.print(msgBank[randNumber]); //Show new message
+  lcd.setCursor(14,1);
+  lcd.print(gearCounter); //Update Gear
+  lcd.setCursor(6,1);
+  lcd.print(turnCounter); //Update Turn
+ }
+}
+
+//Check if buttons have been pressed
+
+void checkUp()
+{
+ up_buttonState = digitalRead(Up_buttonPin);
+ //Check if button state has changed
+ if (up_buttonState != up_lastButtonState) {
+
+  //Has it been pressed?
+  if (up_buttonState == LOW) 
+  {
+   bPress = true; //Set to true, this will trigger it to update display
+   gearCounter++; //Incirment Gear counter
+    
+  //Check if Gear counter has exceeded 6    
+   if (gearCounter > 6) 
+   {
+    //If Gear counter exceeds 6 reset Gear counter and increment turn counter
+    gearCounter = 1;
+    turnCounter++;
+   }
+   
+   //Generate a random number
+   randNumber = random(0,10);
+   
+  } 
+  //Bounce protection
+  delay(50);
+ }
+ //Update button state
+ up_lastButtonState = up_buttonState;
+}
+
+void checkStartUp()
+{
+ start_buttonState = digitalRead(start_buttonPin);
+ //Check if button state has changed
+ if (start_buttonState != start_lastButtonState) {
+
+  //Has it been pressed?
+  if (start_buttonState == LOW) 
+  {
+   startPress = true; //Set to true, this will trigger it to update display
+   
+  //Bounce protection
+  delay(50);
+  }
+ }
+ //Update button state
+ start_lastButtonState = start_buttonState;
+}
+
+//As there is no need to reinvent the wheel I adapted from the folloing sources
+//https://github.com/makertut/counter-lcd-push-btn
+//https://www.circuitstoday.com/interfacing-lcd-to-arduino
